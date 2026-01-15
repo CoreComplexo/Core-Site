@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>CORE - Sistema RP</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+
+    .box {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .box.active {
+      display: flex;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      width: 260px;
+    }
+
+    button { cursor: pointer; }
+
+    h1 { font-size: 48px; }
+    .erro { color: red; font-size: 14px; }
+  </style>
+</head>
+
+<body>
+
+<!-- HOME -->
+<div class="box active" id="home">
+  <h1>CORE</h1>
+  <button onclick="trocarTela('login')">Acessar</button>
+</div>
+
+<!-- LOGIN -->
+<div class="box" id="login">
+  <h2>Login</h2>
+  <input id="usuario" placeholder="Usuário">
+  <input id="senha" type="password" placeholder="Senha">
+  <button onclick="login()">Entrar</button>
+  <div class="erro" id="erro"></div>
+</div>
+
+<!-- PAINEL POLICIAL -->
+<div class="box" id="policial">
+  <h2>Acesso Policial</h2>
+  <p>Login efetuado com sucesso.</p>
+  <button onclick="sair()">Sair</button>
+</div>
+
+<!-- PAINEL SUPERIOR -->
+<div class="box" id="superior">
+  <h2>Painel do Superior CORE</h2>
+
+  <input id="novoUser" placeholder="Usuário do policial">
+  <input id="novaSenha" type="password" placeholder="Senha do policial">
+  <button onclick="cadastrarPolicial()">Cadastrar Policial</button>
+
+  <p id="msg"></p>
+  <button onclick="sair()">Sair</button>
+</div>
+
+<script>
+  /* CONTA DO SUPERIOR (RP) */
+  if (!localStorage.getItem("superior")) {
+    localStorage.setItem("superior", JSON.stringify({
+      usuario: "coreCPX",
+      senha: "corev201"
+    }));
+  }
+
+  if (!localStorage.getItem("policiais")) {
+    localStorage.setItem("policiais", JSON.stringify([]));
+  }
+
+  function trocarTela(id) {
+    document.querySelectorAll('.box').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function login() {
+    const u = usuario.value;
+    const s = senha.value;
+    erro.textContent = "";
+
+    const superior = JSON.parse(localStorage.getItem("superior"));
+    const policiais = JSON.parse(localStorage.getItem("policiais"));
+
+    if (u === superior.usuario && s === superior.senha) {
+      trocarTela("superior");
+      return;
+    }
+
+    const policial = policiais.find(p => p.usuario === u && p.senha === s);
+    if (policial) {
+      trocarTela("policial");
+    } else {
+      erro.textContent = "Usuário ou senha inválidos.";
+    }
+  }
+
+  function cadastrarPolicial() {
+    const user = novoUser.value;
+    const pass = novaSenha.value;
+    const msg = document.getElementById("msg");
+
+    if (!user || !pass) {
+      msg.textContent = "Preencha todos os campos.";
+      return;
+    }
+
+    const policiais = JSON.parse(localStorage.getItem("policiais"));
+
+    if (policiais.find(p => p.usuario === user)) {
+      msg.textContent = "Policial já cadastrado.";
+      return;
+    }
+
+    policiais.push({ usuario: user, senha: pass });
+    localStorage.setItem("policiais", JSON.stringify(policiais));
+
+    msg.textContent = "Policial cadastrado com sucesso.";
+    novoUser.value = "";
+    novaSenha.value = "";
+  }
+
+  function sair() {
+    usuario.value = "";
+    senha.value = "";
+    erro.textContent = "";
+    trocarTela("home");
+  }
+</script>
+
+</body>
+</html>
