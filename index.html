@@ -2,13 +2,10 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>CORE -</title>
+<title>CORE - Sistema RP</title>
 
 <style>
-* {
-  box-sizing: border-box;
-  font-family: Arial, sans-serif;
-}
+* { box-sizing: border-box; font-family: Arial, sans-serif; }
 
 body {
   margin: 0;
@@ -20,22 +17,14 @@ body {
   align-items: center;
 }
 
-/* TELAS */
 .tela {
   display: none;
-  width: 320px;
+  width: 340px;
   text-align: center;
 }
+.tela.active { display: block; }
 
-.tela.active {
-  display: block;
-}
-
-h1 {
-  letter-spacing: 4px;
-}
-
-input {
+input, textarea {
   width: 100%;
   padding: 10px;
   margin: 6px 0;
@@ -52,29 +41,20 @@ button {
   font-weight: bold;
 }
 
-.btn-verde {
-  background: #00ff88;
-}
-
-.btn-vermelho {
-  background: #ff4d4d;
-  color: white;
-}
+.btn-verde { background: #00ff88; }
+.btn-vermelho { background: #ff4d4d; color: white; }
 
 .erro {
   color: #ff4d4d;
   font-size: 14px;
-  margin-top: 6px;
   display: none;
 }
 
-.lista {
+.card {
   background: #111;
   padding: 10px;
   margin-top: 10px;
   text-align: left;
-  max-height: 200px;
-  overflow-y: auto;
 }
 </style>
 </head>
@@ -96,45 +76,52 @@ button {
   <div class="erro" id="loginErro">Usuário ou senha inválidos</div>
 </div>
 
-<!-- PAINEL SUPERIOR -->
+<!-- SUPERIOR -->
 <div class="tela" id="superior">
   <h2>Painel do Superior</h2>
 
   <h3>Cadastrar Policial</h3>
-  <input id="novoUser" placeholder="Usuário">
-  <input id="novoPass" placeholder="Senha">
+  <input id="cadUser" placeholder="Usuário">
+  <input id="cadPass" placeholder="Senha">
+  <input id="cadNome" placeholder="Nome do Policial">
+  <input id="cadPatente" placeholder="Patente">
+  <textarea id="cadCursos" placeholder="Cursos (ex: COMRAD, CTAP)"></textarea>
   <button class="btn-verde" onclick="cadastrar()">Cadastrar</button>
 
   <h3>Excluir Policial</h3>
-  <input id="delUser" placeholder="Usuário do policial">
+  <input id="delUser" placeholder="Usuário">
   <button class="btn-vermelho" onclick="excluir()">Excluir</button>
 
-  <div class="lista" id="lista"></div>
+  <div id="lista"></div>
 
   <button onclick="logout()">Sair</button>
 </div>
 
-<!-- PAINEL POLICIAL -->
+<!-- POLICIAL -->
 <div class="tela" id="policial">
   <h2>Painel do Policial</h2>
-  <p>Acesso padrão concedido.</p>
+  <div class="card">
+    <b>Nome:</b> <span id="pNome"></span><br>
+    <b>Patente:</b> <span id="pPatente"></span><br>
+    <b>Cursos:</b><br>
+    <span id="pCursos"></span>
+  </div>
   <button onclick="logout()">Sair</button>
 </div>
 
 <script>
 // ===== DADOS =====
 let dados = JSON.parse(localStorage.getItem("coreDados")) || {
-  superiores: {
-    "coreCPX": "corev201"
-  },
+  superiores: { "coreCPX": "corev201" },
   policiais: {}
 };
+
+let policialLogado = null;
 
 function salvar() {
   localStorage.setItem("coreDados", JSON.stringify(dados));
 }
 
-// ===== TELAS =====
 function trocarTela(id) {
   document.querySelectorAll(".tela").forEach(t => t.classList.remove("active"));
   document.getElementById(id).classList.add("active");
@@ -144,7 +131,6 @@ function trocarTela(id) {
 function login() {
   const u = loginUser.value;
   const p = loginPass.value;
-
   loginErro.style.display = "none";
 
   if (dados.superiores[u] === p) {
@@ -153,7 +139,9 @@ function login() {
     return;
   }
 
-  if (dados.policiais[u] === p) {
+  if (dados.policiais[u] && dados.policiais[u].senha === p) {
+    policialLogado = dados.policiais[u];
+    mostrarPolicial();
     trocarTela("policial");
     return;
   }
@@ -163,45 +151,44 @@ function login() {
 
 // ===== CADASTRAR =====
 function cadastrar() {
-  const u = novoUser.value;
-  const p = novoPass.value;
-
-  if (!u || !p) return;
-
-  dados.policiais[u] = p;
+  const u = cadUser.value;
+  dados.policiais[u] = {
+    senha: cadPass.value,
+    nome: cadNome.value,
+    patente: cadPatente.value,
+    cursos: cadCursos.value
+  };
   salvar();
-
-  novoUser.value = "";
-  novoPass.value = "";
-
   atualizarLista();
 }
 
 // ===== EXCLUIR =====
 function excluir() {
-  const u = delUser.value;
-
-  if (dados.policiais[u]) {
-    delete dados.policiais[u];
-    salvar();
-    atualizarLista();
-  }
+  delete dados.policiais[delUser.value];
+  salvar();
+  atualizarLista();
 }
 
 // ===== LISTA =====
 function atualizarLista() {
-  lista.innerHTML = "<b>Policiais cadastrados:</b><br><br>";
-
-  const policiais = Object.keys(dados.policiais);
-
-  if (policiais.length === 0) {
-    lista.innerHTML += "Nenhum policial cadastrado.";
-    return;
+  lista.innerHTML = "<h3>Policiais Registrados</h3>";
+  for (let u in dados.policiais) {
+    const p = dados.policiais[u];
+    lista.innerHTML += `
+      <div class="card">
+        <b>${p.nome}</b><br>
+        Usuário: ${u}<br>
+        Patente: ${p.patente}
+      </div>
+    `;
   }
+}
 
-  policiais.forEach(p => {
-    lista.innerHTML += `• ${p}<br>`;
-  });
+// ===== POLICIAL =====
+function mostrarPolicial() {
+  pNome.textContent = policialLogado.nome;
+  pPatente.textContent = policialLogado.patente;
+  pCursos.textContent = policialLogado.cursos;
 }
 
 // ===== LOGOUT =====
